@@ -31,7 +31,13 @@ double radius(FPoint,FPoint);
 std::pair<FPoint,FPoint> get_transformation(const std::pair<FPoint,FPoint>& obj_bbox, const std::pair<FPoint,FPoint>& disp_bbox);
 std::pair<FPoint,FPoint> map_bbox(const std::vector<figure*>& figures);
 
-const std::string window_name();
+const std::string window_title();
+
+std::vector<FPoint> coord_scaling(const std::vector<FPoint>& coord, const FPoint& scale, const FPoint& trans);
+std::pair<FPoint,FPoint> min_max(const std::vector<FPoint>& vec);
+FPoint scale_calculating(const std::pair<FPoint,FPoint>& obj_bbox, const std::pair<FPoint,FPoint>& disp_bbox);
+FPoint center_of_box(const std::pair<FPoint,FPoint>& box, const FPoint& scale);
+FPoint shift(const FPoint& obj_bbox_center, const FPoint& disp_bbox_center);
 
 class FPoint
 {
@@ -69,7 +75,7 @@ class figure
 
     virtual std::string get_id() const = 0;
 
-    friend std::ostream& operator<<(std::ostream& os, const figure* f);
+    friend std::ostream& operator<<(std::ostream& os, const figure& f);
 
     virtual std::pair<FPoint, FPoint> bbox() const;
 

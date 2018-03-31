@@ -111,7 +111,7 @@ int main()
     {
         figure *fig = get_figure(ss);
         {
-            cout << fig << endl;
+            cout << *fig << endl;
             cout << fig->bbox() << endl;
         }
     }
@@ -137,7 +137,7 @@ int main()
         figure *fig;
         while ((fig = get_figure(ifs)) != nullptr)
         {
-            cout << fig << endl;
+            cout << *fig << endl;
             figs.push_back(fig);
         }
     }
@@ -160,11 +160,9 @@ int main()
     cout << egg_box << endl;
     cout << trafo << endl;
 
-    Simple_window wnd(Point(100, 100), 600, 400, window_name());	
-	for (auto pf : figs)
-	{
-		wnd.attach(*(pf->get_shape(trafo.first, trafo.second)));
-	}
+    Simple_window wnd(Point(100, 100), 600, 400, window_title());
+    for (auto pf : figs)
+        wnd.attach(*(pf->get_shape(trafo.first, trafo.second)));
     wnd.wait_for_button();
 
     return 0;

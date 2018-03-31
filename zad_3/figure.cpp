@@ -1,3 +1,4 @@
+//Hubert Janicki, nr albumu: 281771
 #include "figure.h"
 
 //class FPoint defeinitions
@@ -28,36 +29,24 @@
 
 //class figure definitions
 
-    std::ostream& operator<<(std::ostream& os, const figure* f)
+    std::ostream& operator<<(std::ostream& os, const figure& f)
     {
-        os << f->get_id() << '(';
-        for (int i = 0; i < (int)f->fdef.size(); ++i)
-            os << f->fdef[i];
+        os << f.get_id() << '(';
+        for (int i = 0; i < (int)f.fdef.size(); ++i)
+            os << f.fdef[i];
         return os << ')';
     }
 
     std::pair<FPoint,FPoint> figure::bbox() const
     {
-        FPoint pmin = fdef[0], pmax = fdef[0];
-        for (int i = 1; i < (int)fdef.size(); ++i)
-        {
-            pmin = min(pmin, fdef[i]);
-            pmax = max(pmax, fdef[i]);
-        }
-
-        return std::make_pair(pmin,pmax);
+        return min_max(fdef);
     }
 
 //class Rect definitions
 
     Graph_lib::Shape* Rect::get_shape(const FPoint& scale /*= {1.0f,1.0f}*/, const FPoint& trans /*= {0.0f,0.0f}*/) const
     {
-        std::vector<FPoint> fdef_new(fdef.size());
-        for(int i = 0; i < (int)fdef.size(); i++)
-        {
-            fdef_new[i].x = fdef[i].x * scale.x + trans.x;
-            fdef_new[i].y = fdef[i].y * scale.y + trans.y;
-        }
+        std::vector<FPoint> fdef_new = coord_scaling(fdef, scale, trans);
 
         if (!(fdef_new[0] < fdef_new[1]))
         {
@@ -66,26 +55,16 @@
             fdef_new[1] = temp;
         }
 
-        FPoint pmin = fdef_new[0], pmax = fdef_new[0];
-        for (int i = 1; i < (int)fdef_new.size(); ++i)
-        {
-            pmin = min(pmin, fdef_new[i]);
-            pmax = max(pmax, fdef_new[i]);
-        }
+        std::pair<FPoint,FPoint> res = min_max(fdef_new);
 
-        return new Graph_lib::Rectangle(pmin, pmax);
+        return new Graph_lib::Rectangle(res.first, res.second);
     }
 
 //class Circ definitions
 
     Graph_lib::Shape* Circ::get_shape(const FPoint& scale /*= {1.0f,1.0f}*/, const FPoint& trans /*= {0.0f,0.0f}*/) const
     {
-        std::vector<FPoint> fdef_new(fdef.size());
-        for(int i = 0; i < (int)fdef.size(); i++)
-        {
-            fdef_new[i].x = fdef[i].x * scale.x + trans.x;
-            fdef_new[i].y = fdef[i].y * scale.y + trans.y;
-        }
+        std::vector<FPoint> fdef_new = coord_scaling(fdef, scale, trans);
 
         return new Graph_lib::Circle(fdef_new[0],(int)radius(fdef_new[0],fdef_new[1]));
     }
@@ -106,12 +85,7 @@
 
     Graph_lib::Shape* Line::get_shape(const FPoint& scale /*= {1.0f,1.0f}*/, const FPoint& trans /*= {0.0f,0.0f}*/) const
     {
-        std::vector<FPoint> fdef_new(fdef.size());
-        for(int i = 0; i < (int)fdef.size(); i++)
-        {
-            fdef_new[i].x = fdef[i].x * scale.x + trans.x;
-            fdef_new[i].y = fdef[i].y * scale.y + trans.y;
-        }
+        std::vector<FPoint> fdef_new = coord_scaling(fdef, scale, trans);
 
         Graph_lib::Shape* ply = new Graph_lib::Open_polyline;
         for(int i = 0; i < (int)fdef_new.size(); i++)
@@ -198,7 +172,68 @@
         return sqrt(pow((P2.x - P1.x), 2) + pow((P2.y - P1.y), 2));
     }
 
+    //calculating transformation for all figure's points to scale drawing picture
     std::pair<FPoint,FPoint> get_transformation(const std::pair<FPoint,FPoint>& obj_bbox, const std::pair<FPoint,FPoint>& disp_bbox)
+    {
+
+        FPoint scale = scale_calculating(obj_bbox, disp_bbox);
+
+        FPoint obj_bbox_center, disp_bbox_center;
+
+        obj_bbox_center = center_of_box(obj_bbox,scale);
+        disp_bbox_center = center_of_box(disp_bbox,{1.0f, 1.0f});
+
+        FPoint trans = shift(obj_bbox_center, disp_bbox_center);
+
+        return std::make_pair(scale,trans);
+    }
+
+    //finding min and max point of whole picture for drawing
+    std::pair<FPoint,FPoint> map_bbox(const std::vector<figure*>& figures)
+    {
+        std::vector<FPoint> points;
+        for(int i = 0; i < (int)figures.size(); i++)
+        {
+            points.push_back((figures[i]->bbox()).first);
+            points.push_back((figures[i]->bbox()).second);
+        }
+
+        return min_max(points);
+    }
+
+    // name of displayed window
+    const std::string window_title()
+    {
+        return "Hubert Janicki, nr albumu: 281771";
+    }
+
+    //scaling figure's coordinates
+    std::vector<FPoint> coord_scaling(const std::vector<FPoint>& coord, const FPoint& scale, const FPoint& trans)
+    {
+        std::vector<FPoint> coord_new(coord.size());
+        for(int i = 0; i < (int)coord.size(); i++)
+        {
+            coord_new[i].x = coord[i].x * scale.x + trans.x;
+            coord_new[i].y = coord[i].y * scale.y + trans.y;
+        }
+
+        return coord_new;
+    }
+
+    // finding min and max point of figure's coordinates
+    std::pair<FPoint,FPoint> min_max(const std::vector<FPoint>& vec)
+    {
+        FPoint pmin = vec[0], pmax = vec[0];
+        for (int i = 1; i < (int)vec.size(); ++i)
+        {
+            pmin = min(pmin, vec[i]);
+            pmax = max(pmax, vec[i]);
+        }
+        return std::make_pair(pmin,pmax);
+    }
+
+    //calculating scale for figure drawing
+    FPoint scale_calculating(const std::pair<FPoint,FPoint>& obj_bbox, const std::pair<FPoint,FPoint>& disp_bbox)
     {
         float disp_bbox_width = disp_bbox.second.x - disp_bbox.first.x;
         float disp_bbox_height = disp_bbox.second.y - disp_bbox.first.y;
@@ -210,46 +245,25 @@
                     : (disp_bbox_height/obj_bbox_height);
         scale.y = -scale.x;
 
-        FPoint obj_bbox_center, disp_bbox_center;
+        return scale;
+    }
 
-        obj_bbox_center.x = (obj_bbox.second.x*scale.x + obj_bbox.first.x*scale.x)/2;
-        obj_bbox_center.y = (obj_bbox.second.y*scale.y + obj_bbox.first.y*scale.y)/2;
-        disp_bbox_center.x = (disp_bbox.second.x + disp_bbox.first.x)/2;
-        disp_bbox_center.y = (disp_bbox.second.y + disp_bbox.first.y)/2;
+    //finding center point of box
+    FPoint center_of_box(const std::pair<FPoint,FPoint>& box, const FPoint& scale)
+    {
+        FPoint obj_center;
+        obj_center.x = (box.second.x*scale.x + box.first.x*scale.x)/2;
+        obj_center.y = (box.second.y*scale.y + box.first.y*scale.y)/2;
 
+        return obj_center;
+    }
+
+    //finding shift between two boxes
+    FPoint shift(const FPoint& obj_bbox_center, const FPoint& disp_bbox_center)
+    {
         FPoint trans;
         trans.x = disp_bbox_center.x - obj_bbox_center.x;
         trans.y = disp_bbox_center.y - obj_bbox_center.y;
 
-        return std::make_pair(scale,trans);
+        return trans;
     }
-
-    std::pair<FPoint,FPoint> map_bbox(const std::vector<figure*>& figures)
-    {
-        std::vector<FPoint> points;
-        for(int i = 0; i < (int)figures.size(); i++)
-        {
-            points.push_back((figures[i]->bbox()).first);
-            points.push_back((figures[i]->bbox()).second);
-        }
-
-        FPoint pmin = points[0], pmax = points[0];
-        for (int i = 1; i < (int)points.size(); ++i)
-        {
-            pmin = min(pmin, points[i]);
-            pmax = max(pmax, points[i]);
-        }
-
-        return std::make_pair(pmin,pmax);
-    }
-
-    // name of displayed window
-    const std::string window_name()
-    {
-        return "Hubert Janicki, nr albumu: 281771";
-    }
-
-
-
-
-
